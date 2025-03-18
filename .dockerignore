@@ -1,0 +1,29 @@
+# Version control
+.git
+.github
+.gitignore
+
+# Build artifacts and cache
+/target
+Cargo.lock
+
+# Editor settings
+.vscode
+.idea
+*.iml
+
+# Environment variables
+.env*
+!.env.example
+
+# Documentation
+README.md
+*.md
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+.DS_Store 

@@ -1,0 +1,314 @@
+name: Rust CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  CARGO_TERM_COLOR: always
+  DATABASE_URL: postgres://postgres:postgres@localhost:5432/chat_app_test
+  JWT_SECRET: github_actions_secret_key_for_testing_only
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          
+      - name: Check formatting
+        run: cargo fmt -- --check
+        
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
+
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Run unit tests
+        run: cargo test --lib --bin backend -- --nocapture
+        env:
+          RUST_BACKTRACE: 1
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-test
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chat_app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Run migrations
+        run: |
+          cargo install sqlx-cli --no-default-features --features postgres
+          sqlx database create
+          sqlx migrate run
+      
+      - name: Run integration tests
+        run: cargo test --test "*" -- --nocapture
+        env:
+          RUST_BACKTRACE: 1
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: integration-test
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chat_app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: llvm-tools-preview
+          override: true
+      
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      
+      - name: Generate code coverage
+        run: |
+          cargo install sqlx-cli --no-default-features --features postgres
+          sqlx database create
+          sqlx migrate run
+          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          fail_ci_if_error: false
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: coverage
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build release
+        run: cargo build --release
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: chat-app-backend
+          path: target/release/backend
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: chat-app-backend
+          path: ./release
+      
+      - name: Make executable
+        run: chmod +x ./release/backend
+      
+      - name: Deploy to server using sshpass
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            mkdir -p ~/app
+            # Backup aplikasi sebelumnya jika ada
+            mv ~/app/backend ~/app/backend.old || true
+            echo "Berhasil terhubung ke server dan mempersiapkan direktori aplikasi"
+      
+      # Salin file ke server menggunakan scp dengan sshpass
+      - name: Copy files to server using sshpass
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: "./release/backend"
+          target: "~/app"
+          strip_components: 1
+      
+      - name: Start service
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            cd ~/app
+            chmod +x backend
+            
+            # Menghentikan layanan jika sudah berjalan
+            if systemctl --user is-active chat-app.service &>/dev/null; then
+              systemctl --user stop chat-app.service
+              echo "Layanan dihentikan"
+            fi
+            
+            # Memastikan variabel lingkungan tersedia
+            cat > ~/.env.chat-app << EOF
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            PORT=8080
+            HOST=0.0.0.0
+            JWT_EXPIRATION=86400
+            EOF
+            
+            # Membuat service unit systemd
+            cat > ~/.config/systemd/user/chat-app.service << EOF
+            [Unit]
+            Description=Chat Application Backend
+            After=network.target
+            
+            [Service]
+            Type=simple
+            WorkingDirectory=%h/app
+            EnvironmentFile=%h/.env.chat-app
+            ExecStart=%h/app/backend
+            Restart=on-failure
+            
+            [Install]
+            WantedBy=default.target
+            EOF
+            
+            # Reload systemd dan memulai layanan
+            systemctl --user daemon-reload
+            systemctl --user enable chat-app.service
+            systemctl --user start chat-app.service
+            
+            # Memeriksa status layanan
+            systemctl --user status chat-app.service
+            
+            echo "Deployment selesai dan layanan telah dijalankan"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: badruzbby/chat-app-backend:latest 

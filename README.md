@@ -4,6 +4,8 @@
 ![Axum](https://img.shields.io/badge/Axum-0.8.1-blue.svg)
 ![SQLx](https://img.shields.io/badge/SQLx-0.8.3-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![CI/CD](https://github.com/badruzbby/chat-app-backend/actions/workflows/rust-ci-cd.yml/badge.svg)
+![Test Coverage](https://img.shields.io/codecov/c/github/badruzbby/chat-app-backend/main.svg)
 
 Backend aplikasi chat real-time yang dibangun dengan teknologi modern dan performa tinggi menggunakan **Rust**, **Axum**, **WebSockets**, dan **SQLx**.
 
@@ -15,6 +17,9 @@ Backend aplikasi chat real-time yang dibangun dengan teknologi modern dan perfor
 - [Cara Menjalankan](#-cara-menjalankan)
 - [Struktur Project](#-struktur-project)
 - [API Endpoints](#-api-endpoints)
+- [Testing](#-testing)
+- [CI/CD](#-cicd)
+- [Docker](#-docker)
 - [Lingkungan Pengembangan](#-lingkungan-pengembangan)
 - [Lisensi](#-lisensi)
 
@@ -116,6 +121,144 @@ migrations/          # Migrasi database SQLx
 | Endpoint | Deskripsi |
 |----------|-----------|
 | `/ws?token={jwt_token}` | Koneksi WebSocket untuk komunikasi real-time |
+
+## 🧪 Testing
+
+Proyek ini dilengkapi dengan test suite komprehensif yang mencakup unit test untuk model dan autentikasi.
+
+### Struktur Test
+
+```
+tests/
+├── test_user_model.rs       # Test untuk model User
+├── test_message_model.rs    # Test untuk model Message
+├── test_auth.rs             # Test untuk autentikasi JWT
+└── test_auth_handlers.rs    # Test untuk handler registrasi dan login
+```
+
+### Menjalankan Test
+
+Untuk menjalankan semua test:
+
+```bash
+cargo test
+```
+
+Untuk menjalankan test spesifik:
+
+```bash
+# Menjalankan semua test dalam file tertentu
+cargo test --test test_user_model
+
+# Menjalankan test spesifik
+cargo test test_user_creation
+```
+
+Untuk menampilkan output dari test:
+
+```bash
+cargo test -- --nocapture
+```
+
+### Jenis Test yang Diimplementasikan
+
+1. **Test Model User**
+   - Pembuatan user baru
+   - Verifikasi password
+   - Konversi user ke format response
+
+2. **Test Autentikasi**
+   - Pembuatan token JWT
+   - Validasi token kedaluwarsa
+   - Penanganan token dengan signature tidak valid
+
+3. **Test Model Pesan**
+   - Pembuatan pesan
+   - Penanganan pesan publik
+   - Konversi pesan ke format response
+
+4. **Test Handler Auth**
+   - Validasi input registrasi (username dan password)
+   - Pembuatan user dari data registrasi
+   - Verifikasi password untuk login
+
+### Mocking Database
+
+Untuk test yang memerlukan database, proyek ini menggunakan pendekatan berikut:
+
+1. **Mode Debug**: Menggunakan implementasi model yang mengembalikan data dummy pada fungsi-fungsi tertentu
+2. **Struktur Modular**: Pemisahan kode ke dalam lib.rs dan app.rs untuk memudahkan testing
+3. **CI Pipeline**: Konfigurasi database test terpisah untuk continuous integration
+
+## 🔄 CI/CD
+
+Proyek ini menggunakan GitHub Actions untuk Continuous Integration dan Continuous Deployment dengan alur kerja berikut:
+
+### Continuous Integration
+
+1. **Linting & Format Check**
+   - Memeriksa format kode dengan `cargo fmt`
+   - Menjalankan analisis statis dengan `cargo clippy`
+
+2. **Unit Testing**
+   - Menjalankan semua unit test yang independen dari database
+   - Memeriksa fungsionalitas model dan autentikasi
+
+3. **Integration Testing**
+   - Menjalankan database PostgreSQL di container
+   - Menerapkan migrasi database
+   - Menjalankan test yang membutuhkan akses database
+
+4. **Code Coverage**
+   - Menghasilkan laporan coverage menggunakan cargo-llvm-cov
+   - Mengunggah hasil ke Codecov untuk visualisasi dan monitoring
+
+5. **Build**
+   - Mengkompilasi aplikasi dalam mode release
+   - Menyimpan artifact untuk deployment
+
+### Continuous Deployment
+
+Deployment otomatis ke server melalui SSH saat perubahan di-push ke branch `main` atau `master`:
+
+1. **SSH Deployment**
+   - Terhubung ke server menggunakan SSH dengan password
+   - Menyalin aplikasi yang sudah dikompilasi ke server
+   - Mengkonfigurasi dan memulai layanan systemd
+
+2. **Docker Build & Push (opsional)**
+   - Membuat Docker image
+   - Mengunggah ke Docker Hub dengan tag `latest`
+
+Untuk mengaktifkan deployment, tambahkan secrets berikut di repositori GitHub Anda:
+- `SSH_HOST` - Alamat host server untuk deployment
+- `SSH_USERNAME` - Username untuk login SSH
+- `SSH_PASSWORD` - Password untuk login SSH
+- `SSH_PORT` - Port SSH (opsional, default 22)
+- `DATABASE_URL` - URL database untuk aplikasi di server
+- `JWT_SECRET` - Secret key untuk JWT di server
+- `DOCKERHUB_USERNAME` - Username Docker Hub (opsional)
+- `DOCKERHUB_TOKEN` - Token akses Docker Hub (opsional)
+- `CODECOV_TOKEN` - Token untuk upload hasil coverage ke Codecov
+
+## 🐳 Docker
+
+Anda dapat menjalankan aplikasi ini menggunakan Docker:
+
+```bash
+docker pull badruzbby/chat-app-backend:latest
+docker run -p 8080:8080 \
+  -e DATABASE_URL=postgres://user:password@host:5432/db \
+  -e JWT_SECRET=your_secret_key \
+  badruzbby/chat-app-backend:latest
+```
+
+Atau build image secara lokal:
+
+```bash
+docker build -t chat-app-backend .
+docker run -p 8080:8080 chat-app-backend
+```
 
 ## ⚙️ Lingkungan Pengembangan
 
