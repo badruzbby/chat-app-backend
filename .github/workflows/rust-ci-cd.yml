@@ -192,13 +192,26 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       
       - name: Build release
-        run: cargo build --release
+        run: cargo build --release --bin backend
+      
+      - name: Verify executable exists
+        run: |
+          ls -la target/release/
+          if [ ! -f target/release/backend ]; then
+            echo "Error: Backend executable not found!"
+            exit 1
+          fi
+          echo "Backend executable successfully built"
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: chat-app-backend
-          path: target/release/backend
+          path: |
+            target/release/backend
+            target/release/backend.exe
+          if-no-files-found: warn
+          retention-days: 1
 
   deploy:
     name: Deploy
@@ -209,13 +222,26 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v2
         with:
           name: chat-app-backend
           path: ./release
       
-      - name: Make executable
-        run: chmod +x ./release/backend
+      - name: Verify download
+        run: |
+          ls -la ./release/
+          if [ -f ./release/backend ]; then
+            echo "Found Linux executable"
+            chmod +x ./release/backend
+            EXECUTABLE="./release/backend"
+          elif [ -f ./release/backend.exe ]; then
+            echo "Found Windows executable"
+            EXECUTABLE="./release/backend.exe"
+          else
+            echo "Error: No executable found in downloaded artifacts!"
+            exit 1
+          fi
+          echo "Artifact successfully downloaded and verified: $EXECUTABLE"
       
       - name: Deploy to server using sshpass
         uses: appleboy/ssh-action@master
@@ -238,7 +264,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          source: "./release/backend"
+          source: "./release/*"
           target: "~/app"
           strip_components: 1
       
