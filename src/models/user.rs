@@ -1,7 +1,7 @@
 use anyhow::Result;
-use bcrypt::{DEFAULT_COST, hash};
 #[cfg(not(debug_assertions))]
 use bcrypt::verify;
+use bcrypt::{DEFAULT_COST, hash};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, postgres::PgPool};
