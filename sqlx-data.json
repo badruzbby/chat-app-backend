@@ -14,5 +14,111 @@
     },
     "query": "UPDATE users\n            SET is_online = $1, last_seen = $2, updated_at = $2\n            WHERE id = $3"
   },
+  "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_online",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "last_seen",
+          "ordinal": 5,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [false, false, false, true, false, false, false, false],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, username, password_hash, email, is_online, last_seen, created_at, updated_at\n            FROM users\n            WHERE username = $1"
+  },
+  "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "is_online",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "last_seen",
+          "ordinal": 5,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [false, false, false, true, false, false, false, false],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT id, username, password_hash, email, is_online, last_seen, created_at, updated_at\n            FROM users\n            WHERE id = $1"
+  },
   "version": "1"
 } 

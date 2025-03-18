@@ -219,7 +219,7 @@ Proyek ini menggunakan GitHub Actions untuk Continuous Integration dan Continuou
 
 ### SQLx Offline Mode
 
-Untuk memungkinkan kompilasi di lingkungan CI/CD tanpa akses ke database, proyek ini menggunakan fitur **Offline Mode** dari SQLx. Ini memungkinkan validasi query pada waktu kompilasi tanpa koneksi database aktif.
+Untuk memungkinkan kompilasi di lingkungan CI/CD tanpa akses ke database, proyek ini menggunakan **Offline Mode** dari SQLx. Ini memungkinkan validasi query pada waktu kompilasi tanpa koneksi database aktif.
 
 #### Cara Menggunakan SQLx Offline Mode:
 
@@ -238,8 +238,12 @@ Untuk memungkinkan kompilasi di lingkungan CI/CD tanpa akses ke database, proyek
 3. **Mengaktifkan offline mode di CI**:
 
    ```bash
+   # Mengaktifkan mode offline menggunakan environment variable
    SQLX_OFFLINE=true cargo build
    ```
+
+   Perhatikan bahwa kita tidak menggunakan feature `offline` karena versi SQLx yang kita gunakan (0.8.3) tidak 
+   mendukung feature ini. Sebagai gantinya, kita menggunakan environment variable `SQLX_OFFLINE=true`.
 
 Pastikan untuk memperbarui file `sqlx-data.json` setiap kali Anda mengubah query SQL dengan menjalankan `cargo sqlx prepare` kembali.
 

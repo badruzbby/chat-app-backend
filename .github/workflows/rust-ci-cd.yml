@@ -10,6 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   DATABASE_URL: postgres://postgres:postgres@localhost:5432/chat_app_test
   JWT_SECRET: github_actions_secret_key_for_testing_only
+  SQLX_OFFLINE: true
 
 jobs:
   lint:
@@ -66,7 +67,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       
       - name: Run unit tests
-        run: SQLX_OFFLINE=true cargo test --lib --bin backend -- --nocapture
+        run: cargo test --lib --bin backend -- --nocapture
         env:
           RUST_BACKTRACE: 1
 
@@ -111,12 +112,16 @@ jobs:
       
       - name: Run migrations
         run: |
+          # Disable SQLX_OFFLINE temporarily for migrations
+          unset SQLX_OFFLINE
           cargo install sqlx-cli --no-default-features --features postgres
           sqlx database create
           sqlx migrate run
+          # Re-enable SQLX_OFFLINE
+          export SQLX_OFFLINE=true
       
       - name: Run integration tests
-        run: SQLX_OFFLINE=true cargo test --test "*" -- --nocapture
+        run: cargo test --test "*" -- --nocapture
         env:
           RUST_BACKTRACE: 1
 
@@ -156,10 +161,14 @@ jobs:
       
       - name: Generate code coverage
         run: |
+          # Disable SQLX_OFFLINE temporarily for migrations
+          unset SQLX_OFFLINE
           cargo install sqlx-cli --no-default-features --features postgres
           sqlx database create
           sqlx migrate run
-          SQLX_OFFLINE=true cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+          # Re-enable SQLX_OFFLINE
+          export SQLX_OFFLINE=true
+          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -207,7 +216,7 @@ jobs:
       - name: Build release
         run: |
           # Menggunakan fitur offline untuk SQLx
-          SQLX_OFFLINE=true cargo build --release
+          cargo build --release
           ls -la target/release/
           
           # Verifikasi file yang dihasilkan
