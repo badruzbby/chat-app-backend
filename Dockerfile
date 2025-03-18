@@ -7,7 +7,12 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml Cargo.lock ./
+# Salin Cargo.toml terlebih dahulu
+COPY Cargo.toml ./
+
+# Buat Cargo.lock jika belum ada
+RUN touch Cargo.lock
+COPY Cargo.lock* ./
 
 RUN mkdir src \
     && echo "fn main() {}" > src/main.rs \
