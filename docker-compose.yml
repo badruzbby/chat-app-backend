@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/chat_app
+      - JWT_SECRET=your_jwt_secret_key_here
+      - HOST=0.0.0.0
+      - PORT=8080
+      - JWT_EXPIRATION=86400
+    depends_on:
+      - db
+    restart: unless-stopped
+    volumes:
+      - ./migrations:/app/migrations
+
+  db:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=chat_app
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data: 
