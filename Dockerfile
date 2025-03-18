@@ -21,7 +21,9 @@ RUN mkdir src \
 
 COPY . .
 
+# Mengaktifkan flag CI untuk melewati verifikasi query SQLx
 ENV SQLX_OFFLINE=true
+ENV RUSTFLAGS="--cfg ci"
 
 RUN cargo build --release
 
