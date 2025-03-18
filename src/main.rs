@@ -1,21 +1,15 @@
-use std::sync::Arc;
-use std::net::SocketAddr;
 use anyhow::Result;
-use tracing::{
-    info,
-    error,
-};
-use tokio::net::TcpListener;
 use backend::{
-    config::{
-        get_host,
-        get_port,
-    },
+    config::{get_host, get_port},
     create_db_pool,
     middleware::auth::AppState,
     routes::create_routes,
     utils::setup_tracing,
 };
+use std::net::SocketAddr;
+use std::sync::Arc;
+use tokio::net::TcpListener;
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,16 +20,14 @@ async fn main() -> Result<()> {
         Ok(pool) => {
             info!("✅ Koneksi database berhasil");
             pool
-        },
+        }
         Err(e) => {
             error!("❌ Gagal menghubungkan ke database: {}", e);
             return Err(e);
         }
     };
 
-    let state = Arc::new(AppState {
-        db: db_pool,
-    });
+    let state = Arc::new(AppState { db: db_pool });
     let app = create_routes(state);
     let host = get_host();
     let port = get_port();

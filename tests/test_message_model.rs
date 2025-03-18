@@ -15,25 +15,25 @@ async fn test_message_creation() -> Result<()> {
         password: "password456".to_string(),
         email: None,
     };
-    
+
     let sender = User::new(sender_request).await?;
     let receiver = User::new(receiver_request).await?;
-    
+
     // Membuat request pesan
     let message_request = MessageRequest {
         receiver_id: Some(receiver.id),
         content: "Ini adalah pesan test".to_string(),
     };
-    
+
     // Membuat pesan baru
     let message = Message::new(sender.id, message_request);
-    
+
     // Verifikasi data pesan
     assert_eq!(message.sender_id, sender.id);
     assert_eq!(message.receiver_id, Some(receiver.id));
     assert_eq!(message.content, "Ini adalah pesan test");
     assert_eq!(message.is_read, false);
-    
+
     Ok(())
 }
 
@@ -59,7 +59,7 @@ async fn test_public_message() -> Result<()> {
     assert_eq!(message.receiver_id, None);
     assert_eq!(message.content, "Ini adalah pesan publik");
     assert_eq!(message.is_read, false);
-    
+
     Ok(())
 }
 
@@ -103,6 +103,6 @@ async fn test_message_response() -> Result<()> {
     assert_eq!(response.receiver_id, message.receiver_id);
     assert_eq!(response.content, message.content);
     assert_eq!(response.is_read, message.is_read);
-    
+
     Ok(())
-} 
+}

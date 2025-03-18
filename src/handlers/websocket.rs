@@ -2,15 +2,15 @@ use std::sync::Arc;
 
 use axum::{
     extract::{
-        ws::{Message as WsMessage, WebSocket, WebSocketUpgrade},
         Query, State,
+        ws::{Message as WsMessage, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
 use dashmap::DashMap;
 use futures::{
-    stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
+    stream::{SplitSink, SplitStream},
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -103,14 +103,14 @@ async fn handle_socket(socket: WebSocket, user: User, state: Arc<AppState>) {
 
     let user_copy = user.clone();
     let state_copy = state.clone();
-    
+
     tokio::spawn(handle_incoming(receiver, user_copy, state_copy));
     tokio::spawn(handle_outgoing(sender, rx, user.clone()));
 
     let user_id = user.id;
     let username = user.username.clone();
     let db = state.db.clone();
-    
+
     tokio::spawn(async move {
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
@@ -126,11 +126,7 @@ async fn handle_socket(socket: WebSocket, user: User, state: Arc<AppState>) {
     });
 }
 
-async fn handle_incoming(
-    mut receiver: SplitStream<WebSocket>,
-    user: User,
-    state: Arc<AppState>,
-) {
+async fn handle_incoming(mut receiver: SplitStream<WebSocket>, user: User, state: Arc<AppState>) {
     while let Some(result) = receiver.next().await {
         match result {
             Ok(msg) => {
@@ -144,7 +140,10 @@ async fn handle_incoming(
             }
         }
     }
-    debug!("Incoming message handler for user {} stopped", user.username);
+    debug!(
+        "Incoming message handler for user {} stopped",
+        user.username
+    );
 }
 
 async fn handle_outgoing(
@@ -166,7 +165,10 @@ async fn handle_outgoing(
             break;
         }
     }
-    debug!("Outgoing message handler for user {} stopped", user.username);
+    debug!(
+        "Outgoing message handler for user {} stopped",
+        user.username
+    );
 }
 
 async fn process_message(
@@ -177,18 +179,21 @@ async fn process_message(
     match msg {
         WsMessage::Text(text) => {
             let ws_message: WebSocketMessage = serde_json::from_str(&text)?;
-            
+
             match ws_message {
-                WebSocketMessage::Text { content, receiver_id } => {
+                WebSocketMessage::Text {
+                    content,
+                    receiver_id,
+                } => {
                     let msg_request = MessageRequest {
                         content,
                         receiver_id,
                     };
-                    
+
                     let message = Message::new(user.id, msg_request.clone());
-                    
+
                     let saved_message = message.create(&state.db).await?;
-                    
+
                     let response = MessageResponse {
                         id: saved_message.id,
                         sender_id: user.id,
@@ -204,35 +209,37 @@ async fn process_message(
                         is_read: saved_message.is_read,
                         created_at: saved_message.created_at,
                     };
-                    
+
                     if let Some(receiver_id) = saved_message.receiver_id {
                         if let Some(receiver_tx) = CONNECTIONS.get(&receiver_id) {
-                            let _ = receiver_tx.send(WebSocketMessage::Text {
-                                content: serde_json::to_string(&response)?,
-                                receiver_id: Some(user.id),
-                            }).await;
+                            let _ = receiver_tx
+                                .send(WebSocketMessage::Text {
+                                    content: serde_json::to_string(&response)?,
+                                    receiver_id: Some(user.id),
+                                })
+                                .await;
                         }
                     } else {
                         for conn in CONNECTIONS.iter() {
                             if *conn.key() != user.id {
-                                let _ = conn.value().send(WebSocketMessage::Text {
-                                    content: serde_json::to_string(&response)?,
-                                    receiver_id: None,
-                                }).await;
+                                let _ = conn
+                                    .value()
+                                    .send(WebSocketMessage::Text {
+                                        content: serde_json::to_string(&response)?,
+                                        receiver_id: None,
+                                    })
+                                    .await;
                             }
                         }
                     }
-                },
-                _ => {
                 }
+                _ => {}
             }
-        },
-        WsMessage::Close(_) => {
-        },
-        _ => {
         }
+        WsMessage::Close(_) => {}
+        _ => {}
     }
-    
+
     Ok(())
 }
 
@@ -242,10 +249,10 @@ async fn broadcast_user_status(user_id: Uuid, username: &str, is_online: bool) {
         username: username.to_string(),
         is_online,
     };
-    
+
     for conn in CONNECTIONS.iter() {
         if *conn.key() != user_id {
             let _ = conn.value().send(status_message.clone()).await;
         }
     }
-} 
+}

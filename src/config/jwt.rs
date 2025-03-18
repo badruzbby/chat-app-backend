@@ -1,22 +1,11 @@
-use chrono::{
-    Duration,
-    Utc,
-};
-use jsonwebtoken::{
-    decode,
-    encode,
-    DecodingKey,
-    EncodingKey, Header, Validation, Algorithm,
-};
-use serde::{
-    Deserialize,
-    Serialize,
-};
-use uuid::Uuid;
 use anyhow::Result;
+use chrono::{Duration, Utc};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use crate::config::get_jwt_secret;
 use crate::config::get_jwt_expiration;
+use crate::config::get_jwt_secret;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -53,4 +42,4 @@ pub fn validate_token(token: &str) -> Result<Claims> {
     )?;
 
     Ok(decoded.claims)
-} 
+}

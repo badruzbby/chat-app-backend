@@ -1,11 +1,11 @@
 use axum::{
-    routing::{get, post},
     Router,
+    routing::{get, post},
 };
 use std::sync::Arc;
 
+use crate::handlers::{auth, message, user};
 use crate::middleware::auth::AppState;
-use crate::handlers::{auth, user, message};
 
 /// Buat aplikasi Axum untuk testing dan produksi
 pub fn create_app(app_state: AppState) -> Router {
@@ -33,4 +33,4 @@ pub fn create_app(app_state: AppState) -> Router {
         .nest("/users", user_routes)
         .nest("/messages", message_routes)
         .with_state(app_state)
-} 
+}

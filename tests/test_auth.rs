@@ -1,5 +1,5 @@
 use anyhow::Result;
-use backend::config::jwt::{generate_token, validate_token, Claims};
+use backend::config::jwt::{Claims, generate_token, validate_token};
 use backend::models::user::{RegisterRequest, User};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
@@ -43,19 +43,12 @@ async fn test_jwt_token_expiration() -> Result<()> {
         iss: "test_chat_app".to_string(),
     };
     // Menandatangani token
-    let token = jsonwebtoken::encode(
-        &header,
-        &claims,
-        &EncodingKey::from_secret(secret),
-    )?;
+    let token = jsonwebtoken::encode(&header, &claims, &EncodingKey::from_secret(secret))?;
     // Memastikan validasi gagal karena token sudah kedaluwarsa
     let validation = Validation::default();
-    let result = jsonwebtoken::decode::<Claims>(
-        &token,
-        &DecodingKey::from_secret(secret),
-        &validation
-    );
-    
+    let result =
+        jsonwebtoken::decode::<Claims>(&token, &DecodingKey::from_secret(secret), &validation);
+
     assert!(result.is_err());
     Ok(())
 }
@@ -73,9 +66,9 @@ async fn test_invalid_token_signature() -> Result<()> {
     let result = jsonwebtoken::decode::<Claims>(
         &token,
         &DecodingKey::from_secret(different_secret),
-        &validation
+        &validation,
     );
     // Memastikan validasi gagal
     assert!(result.is_err());
     Ok(())
-} 
+}

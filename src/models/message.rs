@@ -1,16 +1,7 @@
 use anyhow::Result;
-use chrono::{
-    DateTime, 
-    Utc
-};
-use serde::{
-    Deserialize, 
-    Serialize
-};
-use sqlx::{
-    postgres::PgPool,
-    FromRow
-};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, postgres::PgPool};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
@@ -45,7 +36,7 @@ pub struct MessageResponse {
 impl Message {
     pub fn new(sender_id: Uuid, request: MessageRequest) -> Self {
         let now = Utc::now();
-        
+
         Self {
             id: Uuid::new_v4(),
             sender_id,
@@ -56,7 +47,7 @@ impl Message {
             updated_at: now,
         }
     }
-    
+
     pub async fn create(self, _pool: &PgPool) -> Result<Self> {
         #[cfg(not(debug_assertions))]
         let message = sqlx::query_as!(
@@ -79,11 +70,16 @@ impl Message {
 
         #[cfg(debug_assertions)]
         let message = self;
-        
+
         Ok(message)
     }
-    
-    pub async fn get_conversation(user1_id: Uuid, user2_id: Uuid, _limit: i64, _pool: &PgPool) -> Result<Vec<Message>> {
+
+    pub async fn get_conversation(
+        user1_id: Uuid,
+        user2_id: Uuid,
+        _limit: i64,
+        _pool: &PgPool,
+    ) -> Result<Vec<Message>> {
         #[cfg(not(debug_assertions))]
         let messages = sqlx::query_as!(
             Message,
@@ -120,12 +116,12 @@ impl Message {
                 is_read: true,
                 created_at: Utc::now() - chrono::Duration::minutes(5),
                 updated_at: Utc::now() - chrono::Duration::minutes(5),
-            }
+            },
         ];
-        
+
         Ok(messages)
     }
-    
+
     pub async fn get_public_messages(_limit: i64, _pool: &PgPool) -> Result<Vec<Message>> {
         #[cfg(not(debug_assertions))]
         let messages = sqlx::query_as!(
@@ -161,12 +157,12 @@ impl Message {
                 is_read: true,
                 created_at: Utc::now() - chrono::Duration::minutes(30),
                 updated_at: Utc::now() - chrono::Duration::minutes(30),
-            }
+            },
         ];
-        
+
         Ok(messages)
     }
-    
+
     pub async fn mark_as_read(&self, _pool: &PgPool) -> Result<()> {
         #[cfg(not(debug_assertions))]
         sqlx::query!(
@@ -180,7 +176,7 @@ impl Message {
         )
         .execute(_pool)
         .await?;
-        
+
         Ok(())
     }
-} 
+}

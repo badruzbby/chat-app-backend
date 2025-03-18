@@ -1,33 +1,21 @@
-use std::sync::Arc;
+use crate::{
+    config::jwt::validate_token,
+    models::{errors::AppError, user::User},
+};
 use axum::{
-    extract::{
-        FromRequestParts,
-        State,
-    },
     body::Body,
-    http::{
-        request::Parts,
-        Request,
-    },
+    extract::{FromRequestParts, State},
+    http::{Request, request::Parts},
     middleware::Next,
     response::Response,
 };
 use axum_extra::{
-    headers::{
-        authorization::Bearer,
-        Authorization,
-    },
     TypedHeader,
+    headers::{Authorization, authorization::Bearer},
 };
 use sqlx::postgres::PgPool;
+use std::sync::Arc;
 use uuid::Uuid;
-use crate::{
-    config::jwt::validate_token,
-    models::{
-        errors::AppError,
-        user::User,
-    },
-};
 
 pub async fn auth_middleware(
     State(state): State<Arc<AppState>>,
@@ -36,18 +24,19 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Result<Response, AppError> {
     let token = auth.token();
-    
-    let claims = validate_token(token).map_err(|_| AppError::Auth("Token tidak valid".to_string()))?;
-    
+
+    let claims =
+        validate_token(token).map_err(|_| AppError::Auth("Token tidak valid".to_string()))?;
+
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::Auth("Token tidak valid".to_string()))?;
-    
+
     let user = User::find_by_id(user_id, &state.db)
         .await?
         .ok_or_else(|| AppError::Auth("Pengguna tidak ditemukan".to_string()))?;
-    
+
     request.extensions_mut().insert(user);
-    
+
     Ok(next.run(request).await)
 }
 
@@ -72,4 +61,4 @@ where
 
 pub struct AppState {
     pub db: PgPool,
-} 
+}

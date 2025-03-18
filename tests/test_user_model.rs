@@ -64,6 +64,6 @@ async fn test_into_response() -> Result<()> {
     // Pastikan password tidak ada di response
     let response_str = format!("{:?}", response);
     assert!(!response_str.contains(&user.password_hash));
-    
+
     Ok(())
-} 
+}

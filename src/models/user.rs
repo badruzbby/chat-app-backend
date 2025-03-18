@@ -1,21 +1,9 @@
 use anyhow::Result;
-use chrono::{
-    DateTime,
-    Utc
-};
-use serde::{
-    Deserialize,
-    Serialize,
-};
-use sqlx::{
-    postgres::PgPool,
-    FromRow,
-};
+use bcrypt::{DEFAULT_COST, hash};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, postgres::PgPool};
 use uuid::Uuid;
-use bcrypt::{
-    hash,
-    DEFAULT_COST,
-};
 
 #[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
 pub struct User {
@@ -63,7 +51,7 @@ impl User {
     pub async fn new(request: RegisterRequest) -> Result<Self> {
         let password_hash = hash_password(&request.password)?;
         let now = Utc::now();
-        
+
         Ok(Self {
             id: Uuid::new_v4(),
             username: request.username,
@@ -75,7 +63,7 @@ impl User {
             updated_at: now,
         })
     }
-    
+
     pub async fn create(self, pool: &PgPool) -> Result<Self> {
         #[cfg(not(debug_assertions))]
         let user = sqlx::query_as!(
@@ -99,10 +87,10 @@ impl User {
 
         #[cfg(debug_assertions)]
         let user = self;
-        
+
         Ok(user)
     }
-    
+
     pub async fn find_by_username(username: &str, pool: &PgPool) -> Result<Option<Self>> {
         #[cfg(not(debug_assertions))]
         let user = sqlx::query_as!(
@@ -119,10 +107,10 @@ impl User {
 
         #[cfg(debug_assertions)]
         let user = None;
-        
+
         Ok(user)
     }
-    
+
     pub async fn find_by_id(id: Uuid, pool: &PgPool) -> Result<Option<Self>> {
         #[cfg(not(debug_assertions))]
         let user = sqlx::query_as!(
@@ -148,10 +136,10 @@ impl User {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         });
-        
+
         Ok(user)
     }
-    
+
     pub async fn get_online_users(pool: &PgPool) -> Result<Vec<UserResponse>> {
         #[cfg(not(debug_assertions))]
         let users = sqlx::query_as!(
@@ -187,19 +175,17 @@ impl User {
                 last_seen: Utc::now(),
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
-            }
+            },
         ];
-        
-        let user_responses = users.into_iter()
-            .map(|u| u.into_response())
-            .collect();
-            
+
+        let user_responses = users.into_iter().map(|u| u.into_response()).collect();
+
         Ok(user_responses)
     }
-    
+
     pub async fn update_online_status(&self, is_online: bool, pool: &PgPool) -> Result<()> {
         let now = Utc::now();
-        
+
         #[cfg(not(debug_assertions))]
         sqlx::query!(
             r#"
@@ -213,10 +199,10 @@ impl User {
         )
         .execute(pool)
         .await?;
-        
+
         Ok(())
     }
-    
+
     pub fn verify_password(&self, _password: &str) -> Result<bool> {
         #[cfg(debug_assertions)]
         return Ok(true);
@@ -224,7 +210,7 @@ impl User {
         #[cfg(not(debug_assertions))]
         return Ok(verify(_password, &self.password_hash)?);
     }
-    
+
     pub fn into_response(self) -> UserResponse {
         UserResponse {
             id: self.id,
@@ -238,4 +224,4 @@ impl User {
 
 fn hash_password(password: &str) -> Result<String> {
     Ok(hash(password, DEFAULT_COST)?)
-} 
+}

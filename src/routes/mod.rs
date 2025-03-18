@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use axum::{
+    Extension, Router,
     middleware::from_fn_with_state,
     routing::{get, post},
-    Extension, Router,
 };
-use tower_http::cors::CorsLayer;
 use http::HeaderName;
-use http::Method;
 use http::HeaderValue;
+use http::Method;
+use tower_http::cors::CorsLayer;
 
 use crate::{
     handlers::{
@@ -17,7 +17,7 @@ use crate::{
         user::{get_current_user, get_online_users, update_online_status},
         websocket::ws_handler,
     },
-    middleware::auth::{auth_middleware, AppState},
+    middleware::auth::{AppState, auth_middleware},
 };
 
 pub fn create_routes(state: Arc<AppState>) -> Router {
@@ -38,13 +38,13 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
             HeaderName::from_static("x-requested-with"),
         ])
         .allow_credentials(true);
-    
+
     let public_routes = Router::new()
         .route("/auth/register", post(register))
         .route("/auth/login", post(login))
         .route("/ws", get(ws_handler))
         .with_state(state.clone());
-    
+
     let protected_routes = Router::new()
         .route("/users/me", get(get_current_user))
         .route("/users/online", get(get_online_users))
@@ -54,10 +54,10 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
         .route("/messages/{receiver_id}", get(get_conversation))
         .route_layer(from_fn_with_state(state.clone(), auth_middleware))
         .with_state(state.clone());
-    
+
     Router::new()
         .merge(public_routes)
         .merge(protected_routes)
         .layer(cors)
         .layer(Extension(state))
-} 
+}

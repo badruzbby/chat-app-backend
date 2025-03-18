@@ -1,3 +1,3 @@
-pub mod user;
+pub mod errors;
 pub mod message;
-pub mod errors; 
+pub mod user;
