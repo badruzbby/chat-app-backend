@@ -235,7 +235,7 @@ jobs:
           ls -la target/release/backend || exit 1
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: chat-app-backend
           path: target/release/backend
