@@ -180,60 +180,57 @@ async fn process_message(
         WsMessage::Text(text) => {
             let ws_message: WebSocketMessage = serde_json::from_str(&text)?;
 
-            match ws_message {
-                WebSocketMessage::Text {
+            if let WebSocketMessage::Text {
+                content,
+                receiver_id,
+            } = ws_message {
+                let msg_request = MessageRequest {
                     content,
                     receiver_id,
-                } => {
-                    let msg_request = MessageRequest {
-                        content,
-                        receiver_id,
-                    };
+                };
 
-                    let message = Message::new(user.id, msg_request.clone());
+                let message = Message::new(user.id, msg_request.clone());
 
-                    let saved_message = message.create(&state.db).await?;
+                let saved_message = message.create(&state.db).await?;
 
-                    let response = MessageResponse {
-                        id: saved_message.id,
-                        sender_id: user.id,
-                        sender_username: user.username.clone(),
-                        receiver_id: saved_message.receiver_id,
-                        receiver_username: if let Some(receiver_id) = saved_message.receiver_id {
-                            let receiver = User::find_by_id(receiver_id, &state.db).await?;
-                            receiver.map(|r| r.username)
-                        } else {
-                            None
-                        },
-                        content: saved_message.content,
-                        is_read: saved_message.is_read,
-                        created_at: saved_message.created_at,
-                    };
+                let response = MessageResponse {
+                    id: saved_message.id,
+                    sender_id: user.id,
+                    sender_username: user.username.clone(),
+                    receiver_id: saved_message.receiver_id,
+                    receiver_username: if let Some(receiver_id) = saved_message.receiver_id {
+                        let receiver = User::find_by_id(receiver_id, &state.db).await?;
+                        receiver.map(|r| r.username)
+                    } else {
+                        None
+                    },
+                    content: saved_message.content,
+                    is_read: saved_message.is_read,
+                    created_at: saved_message.created_at,
+                };
 
-                    if let Some(receiver_id) = saved_message.receiver_id {
-                        if let Some(receiver_tx) = CONNECTIONS.get(&receiver_id) {
-                            let _ = receiver_tx
+                if let Some(receiver_id) = saved_message.receiver_id {
+                    if let Some(receiver_tx) = CONNECTIONS.get(&receiver_id) {
+                        let _ = receiver_tx
+                            .send(WebSocketMessage::Text {
+                                content: serde_json::to_string(&response)?,
+                                receiver_id: Some(user.id),
+                            })
+                            .await;
+                    }
+                } else {
+                    for conn in CONNECTIONS.iter() {
+                        if *conn.key() != user.id {
+                            let _ = conn
+                                .value()
                                 .send(WebSocketMessage::Text {
                                     content: serde_json::to_string(&response)?,
-                                    receiver_id: Some(user.id),
+                                    receiver_id: None,
                                 })
                                 .await;
                         }
-                    } else {
-                        for conn in CONNECTIONS.iter() {
-                            if *conn.key() != user.id {
-                                let _ = conn
-                                    .value()
-                                    .send(WebSocketMessage::Text {
-                                        content: serde_json::to_string(&response)?,
-                                        receiver_id: None,
-                                    })
-                                    .await;
-                            }
-                        }
                     }
                 }
-                _ => {}
             }
         }
         WsMessage::Close(_) => {}

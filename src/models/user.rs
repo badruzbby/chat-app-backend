@@ -64,7 +64,7 @@ impl User {
         })
     }
 
-    pub async fn create(self, pool: &PgPool) -> Result<Self> {
+    pub async fn create(self, _pool: &PgPool) -> Result<Self> {
         #[cfg(not(debug_assertions))]
         let user = sqlx::query_as!(
             User,
@@ -82,7 +82,7 @@ impl User {
             self.created_at,
             self.updated_at
         )
-        .fetch_one(pool)
+        .fetch_one(_pool)
         .await?;
 
         #[cfg(debug_assertions)]
@@ -91,7 +91,7 @@ impl User {
         Ok(user)
     }
 
-    pub async fn find_by_username(username: &str, pool: &PgPool) -> Result<Option<Self>> {
+    pub async fn find_by_username(_username: &str, _pool: &PgPool) -> Result<Option<Self>> {
         #[cfg(not(debug_assertions))]
         let user = sqlx::query_as!(
             User,
@@ -100,9 +100,9 @@ impl User {
             FROM users
             WHERE username = $1
             "#,
-            username
+            _username
         )
-        .fetch_optional(pool)
+        .fetch_optional(_pool)
         .await?;
 
         #[cfg(debug_assertions)]
@@ -111,7 +111,7 @@ impl User {
         Ok(user)
     }
 
-    pub async fn find_by_id(id: Uuid, pool: &PgPool) -> Result<Option<Self>> {
+    pub async fn find_by_id(id: Uuid, _pool: &PgPool) -> Result<Option<Self>> {
         #[cfg(not(debug_assertions))]
         let user = sqlx::query_as!(
             User,
@@ -122,7 +122,7 @@ impl User {
             "#,
             id
         )
-        .fetch_optional(pool)
+        .fetch_optional(_pool)
         .await?;
 
         #[cfg(debug_assertions)]
@@ -140,7 +140,7 @@ impl User {
         Ok(user)
     }
 
-    pub async fn get_online_users(pool: &PgPool) -> Result<Vec<UserResponse>> {
+    pub async fn get_online_users(_pool: &PgPool) -> Result<Vec<UserResponse>> {
         #[cfg(not(debug_assertions))]
         let users = sqlx::query_as!(
             User,
@@ -151,7 +151,7 @@ impl User {
             ORDER BY username
             "#
         )
-        .fetch_all(pool)
+        .fetch_all(_pool)
         .await?;
 
         #[cfg(debug_assertions)]
@@ -183,8 +183,8 @@ impl User {
         Ok(user_responses)
     }
 
-    pub async fn update_online_status(&self, is_online: bool, pool: &PgPool) -> Result<()> {
-        let now = Utc::now();
+    pub async fn update_online_status(&self, _is_online: bool, _pool: &PgPool) -> Result<()> {
+        let _now = Utc::now();
 
         #[cfg(not(debug_assertions))]
         sqlx::query!(
@@ -193,11 +193,11 @@ impl User {
             SET is_online = $1, last_seen = $2, updated_at = $2
             WHERE id = $3
             "#,
-            is_online,
-            now,
+            _is_online,
+            _now,
             self.id
         )
-        .execute(pool)
+        .execute(_pool)
         .await?;
 
         Ok(())
