@@ -66,7 +66,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       
       - name: Run unit tests
-        run: cargo test --lib --bin backend -- --nocapture
+        run: SQLX_OFFLINE=true cargo test --lib --bin backend -- --nocapture
         env:
           RUST_BACKTRACE: 1
 
@@ -116,7 +116,7 @@ jobs:
           sqlx migrate run
       
       - name: Run integration tests
-        run: cargo test --test "*" -- --nocapture
+        run: SQLX_OFFLINE=true cargo test --test "*" -- --nocapture
         env:
           RUST_BACKTRACE: 1
 
@@ -159,7 +159,7 @@ jobs:
           cargo install sqlx-cli --no-default-features --features postgres
           sqlx database create
           sqlx migrate run
-          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+          SQLX_OFFLINE=true cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -206,7 +206,8 @@ jobs:
       
       - name: Build release
         run: |
-          cargo build --release
+          # Menggunakan fitur offline untuk SQLx
+          SQLX_OFFLINE=true cargo build --release
           ls -la target/release/
           
           # Verifikasi file yang dihasilkan

@@ -1,0 +1,18 @@
+{
+  "db": "PostgreSQL",
+  "f7d89e37ba2f858ddb6bd11f3584c0adc6c650121eb34e4a9f151ad5b61951a4": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Timestamptz",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "UPDATE users\n            SET is_online = $1, last_seen = $2, updated_at = $2\n            WHERE id = $3"
+  },
+  "version": "1"
+} 

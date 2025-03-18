@@ -217,6 +217,32 @@ Proyek ini menggunakan GitHub Actions untuk Continuous Integration dan Continuou
    - Mengkompilasi aplikasi dalam mode release
    - Menyimpan artifact untuk deployment
 
+### SQLx Offline Mode
+
+Untuk memungkinkan kompilasi di lingkungan CI/CD tanpa akses ke database, proyek ini menggunakan fitur **Offline Mode** dari SQLx. Ini memungkinkan validasi query pada waktu kompilasi tanpa koneksi database aktif.
+
+#### Cara Menggunakan SQLx Offline Mode:
+
+1. **Membuat file sqlx-data.json**:
+
+   ```bash
+   # Pastikan database lokal Anda berjalan
+   cargo install sqlx-cli
+   cargo sqlx prepare -- --lib
+   ```
+
+2. **Commit file `sqlx-data.json` ke repositori**:
+
+   File ini berisi metadata tentang query SQL Anda dan memungkinkan SQLx untuk memeriksa query tanpa koneksi database.
+
+3. **Mengaktifkan offline mode di CI**:
+
+   ```bash
+   SQLX_OFFLINE=true cargo build
+   ```
+
+Pastikan untuk memperbarui file `sqlx-data.json` setiap kali Anda mengubah query SQL dengan menjalankan `cargo sqlx prepare` kembali.
+
 ### Continuous Deployment
 
 Deployment otomatis ke server melalui SSH saat perubahan di-push ke branch `main` atau `master`:
