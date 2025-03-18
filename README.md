@@ -44,7 +44,7 @@ Backend aplikasi chat real-time yang dibangun dengan teknologi modern dan perfor
 
 ## 📦 Persyaratan
 
-- **Rust** 1.60 atau lebih baru
+- **Rust** 1.80 atau lebih baru
 - **SQLite** atau **PostgreSQL** (opsional)
 - **Cargo** (package manager Rust)
 
