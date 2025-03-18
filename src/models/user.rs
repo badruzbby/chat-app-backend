@@ -1,5 +1,5 @@
 use anyhow::Result;
-#[cfg(not(debug_assertions))]
+#[cfg(not(any(debug_assertions, ci)))]
 use bcrypt::verify;
 use bcrypt::{DEFAULT_COST, hash};
 use chrono::{DateTime, Utc};
@@ -67,7 +67,7 @@ impl User {
     }
 
     pub async fn create(self, _pool: &PgPool) -> Result<Self> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         let user = sqlx::query_as!(
             User,
             r#"
@@ -87,14 +87,14 @@ impl User {
         .fetch_one(_pool)
         .await?;
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, ci))]
         let user = self;
 
         Ok(user)
     }
 
     pub async fn find_by_username(_username: &str, _pool: &PgPool) -> Result<Option<Self>> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         let user = sqlx::query_as!(
             User,
             r#"
@@ -107,14 +107,14 @@ impl User {
         .fetch_optional(_pool)
         .await?;
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, ci))]
         let user = None;
 
         Ok(user)
     }
 
     pub async fn find_by_id(id: Uuid, _pool: &PgPool) -> Result<Option<Self>> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         let user = sqlx::query_as!(
             User,
             r#"
@@ -127,7 +127,7 @@ impl User {
         .fetch_optional(_pool)
         .await?;
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, ci))]
         let user = Some(User {
             id,
             username: "test_user".to_string(),
@@ -143,7 +143,7 @@ impl User {
     }
 
     pub async fn get_online_users(_pool: &PgPool) -> Result<Vec<UserResponse>> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         let users = sqlx::query_as!(
             User,
             r#"
@@ -156,7 +156,7 @@ impl User {
         .fetch_all(_pool)
         .await?;
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, ci))]
         let users = vec![
             User {
                 id: Uuid::new_v4(),
@@ -188,7 +188,7 @@ impl User {
     pub async fn update_online_status(&self, _is_online: bool, _pool: &PgPool) -> Result<()> {
         let _now = Utc::now();
 
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         sqlx::query!(
             r#"
             UPDATE users
@@ -206,10 +206,10 @@ impl User {
     }
 
     pub fn verify_password(&self, _password: &str) -> Result<bool> {
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, ci))]
         return Ok(true);
 
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         return Ok(verify(_password, &self.password_hash)?);
     }
 

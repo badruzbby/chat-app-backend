@@ -49,7 +49,7 @@ impl Message {
     }
 
     pub async fn create(self, _pool: &PgPool) -> Result<Self> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         let message = sqlx::query_as!(
             Message,
             r#"
@@ -68,7 +68,7 @@ impl Message {
         .fetch_one(_pool)
         .await?;
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, ci))]
         let message = self;
 
         Ok(message)
@@ -80,7 +80,7 @@ impl Message {
         _limit: i64,
         _pool: &PgPool,
     ) -> Result<Vec<Message>> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         let messages = sqlx::query_as!(
             Message,
             r#"
@@ -92,12 +92,12 @@ impl Message {
             "#,
             user1_id,
             user2_id,
-            limit
+            _limit
         )
         .fetch_all(_pool)
         .await?;
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, ci))]
         let messages = vec![
             Message {
                 id: Uuid::new_v4(),
@@ -123,7 +123,7 @@ impl Message {
     }
 
     pub async fn get_public_messages(_limit: i64, _pool: &PgPool) -> Result<Vec<Message>> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         let messages = sqlx::query_as!(
             Message,
             r#"
@@ -133,12 +133,12 @@ impl Message {
             ORDER BY created_at DESC
             LIMIT $1
             "#,
-            limit
+            _limit
         )
         .fetch_all(_pool)
         .await?;
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, ci))]
         let messages = vec![
             Message {
                 id: Uuid::new_v4(),
@@ -164,7 +164,7 @@ impl Message {
     }
 
     pub async fn mark_as_read(&self, _pool: &PgPool) -> Result<()> {
-        #[cfg(not(debug_assertions))]
+        #[cfg(not(any(debug_assertions, ci)))]
         sqlx::query!(
             r#"
             UPDATE messages

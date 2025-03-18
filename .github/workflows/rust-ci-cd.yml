@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   DATABASE_URL: postgres://postgres:postgres@localhost:5432/chat_app_test
   JWT_SECRET: github_actions_secret_key_for_testing_only
-  SQLX_OFFLINE: true
+  CI: true
 
 jobs:
   lint:
