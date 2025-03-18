@@ -21,7 +21,10 @@ pub async fn register(
         ));
     }
 
-    if User::find_by_username(&request.username, &state.db).await?.is_some() {
+    if User::find_by_username(&request.username, &state.db)
+        .await?
+        .is_some()
+    {
         return Err(AppError::Validation("Username sudah digunakan".to_string()));
     }
 

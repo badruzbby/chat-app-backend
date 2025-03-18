@@ -183,7 +183,8 @@ async fn process_message(
             if let WebSocketMessage::Text {
                 content,
                 receiver_id,
-            } = ws_message {
+            } = ws_message
+            {
                 let msg_request = MessageRequest {
                     content,
                     receiver_id,
