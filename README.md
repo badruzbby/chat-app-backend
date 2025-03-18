@@ -290,6 +290,33 @@ docker build -t chat-app-backend .
 docker run -p 8080:8080 chat-app-backend
 ```
 
+### Docker Compose (Direkomendasikan)
+
+Cara termudah untuk menjalankan aplikasi beserta database PostgreSQL adalah menggunakan Docker Compose:
+
+```bash
+# Jalankan aplikasi dan database
+docker-compose up -d
+
+# Lihat logs
+docker-compose logs -f
+
+# Hentikan semua container
+docker-compose down
+
+# Hentikan dan hapus volume data (akan menghapus semua data database)
+docker-compose down -v
+```
+
+Docker Compose akan secara otomatis:
+1. Membangun image backend dari Dockerfile
+2. Menjalankan database PostgreSQL
+3. Mengkonfigurasi jaringan antar kontainer
+4. Memetakan port yang diperlukan
+5. Menyediakan volume persisten untuk data PostgreSQL
+
+Variabel lingkungan yang diperlukan sudah dikonfigurasi dalam file `docker-compose.yml`.
+
 ## ⚙️ Lingkungan Pengembangan
 
 Aplikasi ini menggunakan file `.env` untuk konfigurasi. Variabel-variabel lingkungan yang tersedia:
