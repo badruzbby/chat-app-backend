@@ -182,6 +182,19 @@ jobs:
           toolchain: stable
           override: true
       
+      - name: Verify Cargo.toml
+        run: |
+          echo "Checking Cargo.toml configuration"
+          if ! grep -q "\\[\\[bin\\]\\]" Cargo.toml; then
+            echo "No [[bin]] section found in Cargo.toml."
+            echo "Using package name as binary name..."
+            PACKAGE_NAME=$(grep "^name" Cargo.toml | cut -d '"' -f 2 || echo "backend")
+            echo "Package name: $PACKAGE_NAME"
+          else
+            echo "[[bin]] section found in Cargo.toml:"
+            grep -A 10 "\\[\\[bin\\]\\]" Cargo.toml
+          fi
+      
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -192,26 +205,40 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       
       - name: Build release
-        run: cargo build --release --bin backend
-      
-      - name: Verify executable exists
         run: |
+          cargo build --release
           ls -la target/release/
-          if [ ! -f target/release/backend ]; then
-            echo "Error: Backend executable not found!"
-            exit 1
+          
+          # Verifikasi file yang dihasilkan
+          find target -name 'backend' -type f || echo "backend executable not found using find"
+          
+          if [ -f "target/release/backend" ]; then
+            echo "Backend executable found at expected location."
+            file target/release/backend
+          else 
+            echo "Backend executable not found at expected location."
+            echo "Contents of target/release directory:"
+            ls -la target/release/
+            
+            # Mencari executable alternatif
+            PACKAGE_NAME=$(grep "^name" Cargo.toml | cut -d '"' -f 2 || echo "backend")
+            if [ -f "target/release/$PACKAGE_NAME" ]; then
+              echo "Found executable with package name: $PACKAGE_NAME"
+              cp target/release/$PACKAGE_NAME target/release/backend
+            else
+              echo "Failed to find executable"
+              exit 1
+            fi
           fi
-          echo "Backend executable successfully built"
+          
+          # Memastikan bahwa file yang akan di-upload ada
+          ls -la target/release/backend || exit 1
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v1
         with:
           name: chat-app-backend
-          path: |
-            target/release/backend
-            target/release/backend.exe
-          if-no-files-found: warn
-          retention-days: 1
+          path: target/release/backend
 
   deploy:
     name: Deploy
@@ -222,7 +249,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v1
         with:
           name: chat-app-backend
           path: ./release
@@ -230,18 +257,8 @@ jobs:
       - name: Verify download
         run: |
           ls -la ./release/
-          if [ -f ./release/backend ]; then
-            echo "Found Linux executable"
-            chmod +x ./release/backend
-            EXECUTABLE="./release/backend"
-          elif [ -f ./release/backend.exe ]; then
-            echo "Found Windows executable"
-            EXECUTABLE="./release/backend.exe"
-          else
-            echo "Error: No executable found in downloaded artifacts!"
-            exit 1
-          fi
-          echo "Artifact successfully downloaded and verified: $EXECUTABLE"
+          chmod +x ./release/backend
+          echo "Artifact successfully downloaded and executable permissions set"
       
       - name: Deploy to server using sshpass
         uses: appleboy/ssh-action@master
@@ -264,7 +281,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          source: "./release/*"
+          source: "./release/backend"
           target: "~/app"
           strip_components: 1
       
@@ -295,6 +312,7 @@ jobs:
             EOF
             
             # Membuat service unit systemd
+            mkdir -p ~/.config/systemd/user/
             cat > ~/.config/systemd/user/chat-app.service << EOF
             [Unit]
             Description=Chat Application Backend
